@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -21,19 +21,30 @@ export const useTheme = () => useContext(ThemeContext);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system');
   const systemColorScheme = useColorScheme();
-  const isDark = theme === 'dark' || (theme === 'system' && systemColorScheme === 'dark');
+  const isDark =
+    theme === 'dark' || (theme === 'system' && systemColorScheme === 'dark');
 
   useEffect(() => {
-    // Load saved theme preference
-    SecureStore.getItemAsync('theme').then((savedTheme) => {
+    if (Platform.OS === 'web') {
+      const savedTheme = localStorage.getItem('theme');
       if (savedTheme) {
         setThemeState(savedTheme as Theme);
       }
-    });
+    } else {
+      SecureStore.getItemAsync('theme').then((savedTheme) => {
+        if (savedTheme) {
+          setThemeState(savedTheme as Theme);
+        }
+      });
+    }
   }, []);
 
   const setTheme = async (newTheme: Theme) => {
-    await SecureStore.setItemAsync('theme', newTheme);
+    if (Platform.OS === 'web') {
+      localStorage.setItem('theme', newTheme);
+    } else {
+      await SecureStore.setItemAsync('theme', newTheme);
+    }
     setThemeState(newTheme);
   };
 
